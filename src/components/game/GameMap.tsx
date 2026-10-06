@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 import { createMapLocationIcon } from "./CategoryIcon";
 import { supabase } from "@/integrations/supabase/client";
 import { cellBounds, cellFor, LAT_STEP, LNG_STEP } from "@/lib/game";
@@ -29,17 +30,42 @@ export default function GameMap({ me, locations, myId, refreshKey, recenterKey, 
 
   useEffect(() => {
     if (!el.current || map.current) return;
-    const m = L.map(el.current, { zoomControl: false, attributionControl: true, minZoom: 4 }).setView(SWEDEN_CENTER, 5);
-    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    const m = L.map(el.current, {
+      zoomControl: false,
+      attributionControl: true,
+      minZoom: 4,
       maxZoom: 19,
+      zoomAnimation: true,
+      fadeAnimation: true,
+      markerZoomAnimation: true,
+    }).setView(SWEDEN_CENTER, 5);
+
+    const tiles = L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      subdomains: ["a", "b", "c"],
+      maxZoom: 19,
+      updateWhenIdle: true,
+      keepBuffer: 2,
       className: "platsly-dark-tiles",
-    }).addTo(m);
+    });
+
+    tiles.on("tileerror", (event) => {
+      console.warn("Platsly map tile failed to load", event);
+    });
+    tiles.addTo(m);
     locLayer.current = L.layerGroup().addTo(m);
     gridLayer.current = L.layerGroup().addTo(m);
     map.current = m;
     m.on("moveend", () => { drawGrid(); drawLocations(); });
+
+    const resizeObserver = new ResizeObserver(() => {
+      requestAnimationFrame(() => m.invalidateSize({ pan: false }));
+    });
+    resizeObserver.observe(el.current);
+    requestAnimationFrame(() => m.invalidateSize({ pan: false }));
+
     return () => {
+      resizeObserver.disconnect();
       m.remove();
       map.current = null;
       locLayer.current = null;
