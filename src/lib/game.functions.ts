@@ -133,3 +133,52 @@ export const grantRoleByUsername = createServerFn({ method: "POST" })
     }
     return { ok: true };
   });
+
+
+export const ensureProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const sb = await admin();
+    const { data: existing, error: lookupError } = await sb
+      .from("profiles")
+      .select("id")
+      .eq("id", context.userId)
+      .maybeSingle();
+
+    if (lookupError) throw new Error("Kunde inte läsa spelarprofilen.");
+    if (existing) return { ok: true as const, created: false as const };
+
+    const { data: authData, error: authError } = await sb.auth.admin.getUserById(context.userId);
+    if (authError || !authData.user) throw new Error("Kunde inte läsa användarkontot.");
+
+    const rawBase = String(authData.user.user_metadata?.username ?? authData.user.email?.split("@")[0] ?? "spelare");
+    const base = rawBase
+      .normalize("NFKC")
+      .replace(/[^a-zA-Z0-9_åäöÅÄÖ]/g, "")
+      .slice(0, 16) || "spelare";
+
+    let username = base;
+    for (let i = 0; i < 100; i++) {
+      const { data: taken } = await sb.from("profiles").select("id").eq("username", username).maybeSingle();
+      if (!taken) break;
+      username = (base.slice(0, 11) + Math.floor(10000 + Math.random() * 90000)).slice(0, 16);
+    }
+
+    const playerId = `PL-${crypto.randomUUID().replace(/-/g, "").slice(0, 6).toUpperCase()}`;
+    const { error: insertError } = await sb.from("profiles").insert({
+      id: context.userId,
+      username,
+      player_id: playerId,
+    });
+    if (insertError) {
+      const { data: after } = await sb.from("profiles").select("id").eq("id", context.userId).maybeSingle();
+      if (!after) throw new Error("Kunde inte skapa spelarprofilen.");
+    }
+
+    await sb.from("user_roles").upsert(
+      { user_id: context.userId, role: "user" },
+      { onConflict: "user_id,role" },
+    );
+
+    return { ok: true as const, created: true as const };
+  });
