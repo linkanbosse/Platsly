@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 
 export const Route = createFileRoute("/auth")({
   head: () => ({
@@ -47,21 +46,24 @@ function AuthPage() {
     setBusy(true);
     try {
       if (mode === "signup") {
-        if (!/^[a-zA-Z0-9_åäöÅÄÖ]{3,16}$/.test(username)) throw new Error("Användarnamn: 3–16 tecken, bokstäver, siffror eller _.");
+        const cleanUsername = username.trim();
+        if (!/^[a-zA-Z0-9_åäöÅÄÖ]{3,20}$/.test(cleanUsername)) {
+          throw new Error("Användarnamn: 3–20 tecken, bokstäver, siffror eller _.");
+        }
         if (password.length < 8) throw new Error("Lösenordet måste vara minst 8 tecken.");
         if (!accept) throw new Error("Du måste godkänna villkoren.");
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password,
-          options: { emailRedirectTo: window.location.origin + "/hem", data: { username } },
+          options: { emailRedirectTo: window.location.origin + "/hem", data: { username: cleanUsername } },
         });
         if (error) throw error;
         if (!data.session) toast.success("Kolla din e-post och bekräfta kontot.");
       } else if (mode === "login") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
         if (error) throw new Error("Fel e-post eller lösenord.");
       } else {
-        const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset-password" });
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo: window.location.origin + "/reset-password" });
         if (error) throw error;
         toast.success("Vi har skickat en länk för att återställa lösenordet.");
         setMode("login");
@@ -74,15 +76,11 @@ function AuthPage() {
   }
 
   async function google() {
-    const onLovable = /(^|\.)(lovable\.app|lovableproject\.com)$/.test(window.location.hostname);
-    if (!onLovable) {
-      // Fristående drift: vanlig Google-inloggning via egen databas.
-      const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: window.location.origin } });
-      if (error) toast.error("Inloggning med Google misslyckades.");
-      return;
-    }
-    const r = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
-    if (r.error) toast.error("Inloggning med Google misslyckades.");
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.origin },
+    });
+    if (error) toast.error("Inloggning med Google misslyckades.");
   }
 
   return (
