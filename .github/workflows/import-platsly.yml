@@ -1,0 +1,41 @@
+name: Import Platsly project
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Download complete Platsly project
+        shell: bash
+        run: |
+          set -e
+          curl -L "https://github.com/user-attachments/files/33126616/platsly-komplett.zip" -o platsly.zip
+          rm -rf /tmp/platsly
+          mkdir -p /tmp/platsly
+          unzip -q platsly.zip -d /tmp/platsly
+          shopt -s dotglob nullglob
+          entries=(/tmp/platsly/*)
+          if [ "${#entries[@]}" -eq 1 ] && [ -d "${entries[0]}" ]; then
+            cp -a "${entries[0]}"/. .
+          else
+            cp -a /tmp/platsly/. .
+          fi
+          rm -rf /tmp/platsly platsly.zip
+
+      - name: Commit imported project
+        shell: bash
+        run: |
+          set -e
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Import complete Platsly project [skip ci]" || exit 0
+          git push origin HEAD:main
