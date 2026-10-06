@@ -1,5 +1,4 @@
-// Fristående byggkonfiguration utan Lovable-paket.
-// Används av `bun run build:standalone` (t.ex. på Vercel eller Cloudflare).
+// Standalone Vite/TanStack Start build configuration.
 import { defineConfig } from "vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
