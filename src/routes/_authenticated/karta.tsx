@@ -64,11 +64,11 @@ function MapPage() {
     <AppShell flush>
       <div className="fixed inset-0 mx-auto max-w-md">
         <Suspense fallback={<div className="grid h-full place-items-center text-muted-foreground">Laddar karta…</div>}>
-          {p && (
+          {(
             <GameMap
               me={me}
               locations={mapLocs}
-              myId={p.id}
+              myId={p?.id ?? ""}
               refreshKey={refreshKey}
               recenterKey={recenter}
               onSelectLocation={(id) => setSel({ kind: "loc", id })}
