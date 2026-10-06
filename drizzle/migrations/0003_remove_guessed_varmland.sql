@@ -1,0 +1,2 @@
+delete from public.discoveries where location_id in (select id from public.locations where is_demo and city in ('Sunne','Torsby','Kil','Arvika','Hagfors') or (is_demo and name in ('Karlstads domkyrka','Karlstad C','Mariebergsskogen','Karlstads universitet','Kungsgatan Karlstad')));
+delete from public.locations where is_demo and (city in ('Sunne','Torsby','Kil','Arvika','Hagfors') or name in ('Karlstads domkyrka','Karlstad C','Mariebergsskogen','Karlstads universitet','Kungsgatan Karlstad'));

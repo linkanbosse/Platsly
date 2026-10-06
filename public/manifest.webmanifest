@@ -1,0 +1,13 @@
+{
+  "name": "PLATSLY — Upptäck Sverige",
+  "short_name": "PLATSLY",
+  "lang": "sv",
+  "start_url": "/hem",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0b1424",
+  "theme_color": "#0b1424",
+  "icons": [
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
